@@ -1,157 +1,205 @@
--- Vhan Hub - Codium Style Edition
+-- VHAN CORE SYSTEM v1.0
+-- Roblox Studio - StarterPlayerScripts
+-- Functional UI + task lifecycle + pause/mode/stop
+
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local localPlayer = Players.LocalPlayer
-local playerGui = localPlayer:WaitForChild("PlayerGui")
 
--- Hapus GUI lama jika ada
-if playerGui:FindFirstChild("VhanCodiumHub") then
-    playerGui.VhanCodiumHub:Destroy()
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local VHAN = {
+    Running = false,
+    Paused = false,
+    Mode = 1,
+    Modes = {"SAFE", "BALANCED", "FAST"},
+    TaskName = "Idle",
+    TaskToken = 0,
+}
+
+local function stopTask()
+    VHAN.TaskToken += 1
+    VHAN.Running = false
+    VHAN.Paused = false
+    VHAN.TaskName = "Idle"
 end
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "VhanCodiumHub"
-screenGui.Parent = playerGui
-screenGui.ResetOnSpawn = false
+local function startTask(name, callback)
+    stopTask()
 
--- Frame Utama (Gaya Modern Dark ala Codium)
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.Parent = screenGui
-mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
-mainFrame.Position = UDim2.new(0.5, -150, 0.3, 0)
-mainFrame.Size = UDim2.new(0, 300, 0, 340)
-mainFrame.Active = true
-mainFrame.Draggable = true
+    VHAN.TaskToken += 1
+    local myToken = VHAN.TaskToken
 
--- Garis Atas / Aksen Warna
-local accentBar = Instance.new("Frame")
-accentBar.Parent = mainFrame
-accentBar.BackgroundColor3 = Color3.fromRGB(120, 80, 255)
-accentBar.Size = UDim2.new(1, 0, 0, 4)
+    VHAN.Running = true
+    VHAN.Paused = false
+    VHAN.TaskName = name
 
--- Judul / Header Ala Codium
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Parent = mainFrame
-titleLabel.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
-titleLabel.Size = UDim2.new(1, 0, 0, 40)
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.Text = "  ⚡ Vhan.Hub | Steal an Egg"
-titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleLabel.TextSize = 15
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    task.spawn(function()
+        while VHAN.TaskToken == myToken and VHAN.Running do
+            if not VHAN.Paused then
+                local ok, err = pcall(callback)
 
--- Tombol Close (X) di Pojok Kanan Atas
-local closeBtn = Instance.new("TextButton")
-closeBtn.Parent = titleLabel
-closeBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
-closeBtn.Position = UDim2.new(1, -40, 0, 0)
-closeBtn.Size = UDim2.new(0, 40, 0, 40)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.Text = "X"
-closeBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
-closeBtn.TextSize:eq and nil or (closeBtn.TextSize = 14)
-
-closeBtn.MouseButton1Click:Connect(function()
-    screenGui:Destroy()
-end)
-
--- Container / Tempat Tombol Fitur
-local container = Instance.new("ScrollingFrame")
-container.Parent = mainFrame
-container.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
-container.BorderSizePixel = 0
-container.Position = UDim2.new(0, 0, 0, 50)
-container.Size = UDim2.new(1, 0, 1, -50)
-container.CanvasSize = UDim2.new(0, 0, 0, 380)
-container.ScrollBarThickness = 4
-
-local uiLayout = Instance.new("UIListLayout")
-uiLayout.Parent = container
-uiLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-uiLayout.SortOrder = Enum.SortOrder.LayoutOrder
-uiLayout.Padding = UDim.new(0, 8)
-
--- Fungsi Pembuat Tombol Keren Ala Codium
-local function addActionBtn(text, callback)
-    local btn = Instance.new("TextButton")
-    btn.Parent = container
-    btn.BackgroundColor3 = Color3.fromRGB(32, 32, 42)
-    btn.Size = UDim2.new(0, 270, 0, 38)
-    btn.Font = Enum.Font.GothamSemibold
-    btn.Text = "  " .. text
-    btn.TextColor3 = Color3.fromRGB(220, 220, 220)
-    btn.TextSize = 13
-    btn.TextXAlignment = Enum.TextXAlignment.Left
-    
-    -- Efek sudut melengkung
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = btn
-    
-    btn.MouseButton1Click:Connect(callback)
-    return btn
-end
-
--- 1. Fitur Speed Boost
-local isSpeedOn = false
-addActionBtn("⚡ Speed Boost (Toggle)", function()
-    isSpeedOn = not isSpeedOn
-    local char = localPlayer.Character
-    if char and char:FindFirstChild("Humanoid") then
-        char.Humanoid.WalkSpeed = isSpeedOn and 50 or 16
-    end
-end)
-
--- 2. Fitur Super Jump
-local isJumpOn = false
-addActionBtn("🦘 Super Jump (Toggle)", function()
-    isJumpOn = not isJumpOn
-    local char = localPlayer.Character
-    if char and char:FindFirstChild("Humanoid") then
-        char.Humanoid.JumpPower = isJumpOn and 120 or 50
-    end
-end)
-
--- 3. Fitur Teleport Sarang
-addActionBtn("📍 Teleport ke Sarang", function()
-    local char = localPlayer.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        char.HumanoidRootPart.CFrame = CFrame.new(0, 30, 0)
-    end
-end)
-
--- 4. Fitur Infinite Jump
-local isInfJumpOn = false
-addActionBtn("🚀 Infinite Jump (Udara)", function()
-    isInfJumpOn = not isInfJumpOn
-end)
-
-UserInputService.JumpRequest:Connect(function()
-    if isInfJumpOn then
-        local char = localPlayer.Character
-        if char and char:FindFirstChildOfClass("Humanoid") then
-            char:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
-        end
-    end
-end)
-
--- 5. Fitur Noclip (Tembus Tembok)
-local isNoclipOn = false
-addActionBtn("👻 Noclip (Tembus Dinding)", function()
-    isNoclipOn = not isNoclipOn
-end)
-
-RunService.Stepped:Connect(function()
-    if isNoclipOn then
-        local char = localPlayer.Character
-        if char then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
+                if not ok then
+                    warn("[VHAN] Task error:", err)
+                    stopTask()
+                    break
                 end
             end
+
+            task.wait(0.1)
         end
+    end)
+end
+
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "VHAN_Core"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+local panel = Instance.new("Frame")
+panel.Name = "MainPanel"
+panel.Size = UDim2.fromOffset(280, 250)
+panel.Position = UDim2.new(0.5, -140, 0.5, -125)
+panel.BackgroundColor3 = Color3.fromRGB(24, 17, 20)
+panel.BorderSizePixel = 0
+panel.Parent = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = panel
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(220, 45, 35)
+stroke.Thickness = 2
+stroke.Parent = panel
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -20, 0, 42)
+title.Position = UDim2.fromOffset(10, 4)
+title.BackgroundTransparency = 1
+title.Text = "VHAN  •  CORE"
+title.TextColor3 = Color3.fromRGB(255, 194, 65)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+title.Parent = panel
+
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1, -20, 0, 36)
+status.Position = UDim2.fromOffset(10, 47)
+status.BackgroundColor3 = Color3.fromRGB(42, 30, 33)
+status.TextColor3 = Color3.fromRGB(255, 255, 255)
+status.Font = Enum.Font.Gotham
+status.TextSize = 12
+status.Parent = panel
+
+local statusCorner = Instance.new("UICorner")
+statusCorner.CornerRadius = UDim.new(0, 7)
+statusCorner.Parent = status
+
+local function refresh()
+    local state = "READY"
+    if VHAN.Running and VHAN.Paused then
+        state = "PAUSED"
+    elseif VHAN.Running then
+        state = "RUNNING"
+    end
+
+    status.Text = string.format(
+        "STATE: %s  |  TASK: %s  |  MODE: %s",
+        state, VHAN.TaskName, VHAN.Modes[VHAN.Mode]
+    )
+end
+
+local function makeButton(text, y, color, callback)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, -24, 0, 36)
+    button.Position = UDim2.fromOffset(12, y)
+    button.BackgroundColor3 = color
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 13
+    button.Text = text
+    button.AutoButtonColor = true
+    button.Parent = panel
+
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 7)
+    c.Parent = button
+
+    button.Activated:Connect(callback)
+    return button
+end
+
+makeButton("START DEMO TASK", 92,
+    Color3.fromRGB(145, 37, 30), function()
+        startTask("Demo", function()
+            -- Contoh tugas nyata yang aman: memperbarui status.
+            -- Ganti callback ini dengan logika game milikmu.
+            refresh()
+        end)
+        refresh()
+    end)
+
+makeButton("PAUSE / RESUME", 134,
+    Color3.fromRGB(125, 82, 25), function()
+        if VHAN.Running then
+            VHAN.Paused = not VHAN.Paused
+        end
+        refresh()
+    end)
+
+makeButton("CHANGE MODE", 176,
+    Color3.fromRGB(70, 55, 100), function()
+        VHAN.Mode = (VHAN.Mode % #VHAN.Modes) + 1
+        refresh()
+    end)
+
+makeButton("STOP TASK", 218,
+    Color3.fromRGB(75, 35, 38), function()
+        stopTask()
+        refresh()
+    end)
+
+-- Drag panel using mouse or touch
+local dragging = false
+local dragInput
+local dragStart
+local startPosition
+
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPosition = panel.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
     end
 end)
+
+title.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input == dragInput then
+        local delta = input.Position - dragStart
+        panel.Position = UDim2.new(
+            startPosition.X.Scale,
+            startPosition.X.Offset + delta.X,
+            startPosition.Y.Scale,
+            startPosition.Y.Offset + delta.Y
+        )
+    end
+end)
+
+refresh()
+print("[VHAN] Core loaded successfully.")
